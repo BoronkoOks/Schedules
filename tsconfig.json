@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "es6",
+    "module": "commonjs",
+    "lib": [
+      "dom",
+      "es6"
+    ],
+    "strict": false,
+    "declaration": true,
+    "outDir": "dist",
+    "sourceMap": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "downlevelIteration": true,
+    "experimentalDecorators": true
+  },
+  "include": [
+    "node_modules",
+    "src/**/*"
+  ],
+  "exclude": [
+    
+    "**/*.spec.ts"
+  ]
+}
