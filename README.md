@@ -9,12 +9,11 @@
 
 Компиляция и запуск:
 
-tsc src\Application.ts
-node src\Application.js
+tsc src\Application.ts</br>
+node src\Application.js</br>
 
 
 Варианты команд в command.txt:
 
-FromHTML  (считать из html в БД)
-FromDB    (записать из БД в html)
-
+FromHTML  (считать из html в БД)</br>
+FromDB    (записать из БД в html)</br>
