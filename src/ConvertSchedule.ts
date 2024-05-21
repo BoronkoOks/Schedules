@@ -38,19 +38,26 @@ parser.ontext = function (t: string): void {
 // Считать расписание из таблицы
 export function ReadFromHTMLFile()
 {
-    const scheduleFromHTML: string[][] = [[], [], [], [], [], [], [], [], [], [], [], []]
+    const scheduleFromHTML: string[][] = [[], [], [], [], [], [], [], [], [], [], [], [], []]
 
-    let FromHtml = fs.readFileSync("src\\34.html", "utf8")
+    let FromHtml = fs.readFileSync("src\\schedule.html", "utf8")
+
+    let groupNext = -1 // -1 ещё не записали группу, 0 - группа в следующем FONT, 1 - группа записана
 
     current = start
 
     let col = -1
-    let row = -2
+    let row = -1
 
     start.onopentag = function (tag): void {
         if (tag.name == "TABLE")
         {
             current = table
+        }
+
+        if (groupNext < 1 && tag.name == "FONT")
+        {
+            current = font
         }
     }
 
@@ -88,9 +95,22 @@ export function ReadFromHTMLFile()
     }
 
     font.ontext = function(t: string): void {
-        if (row > 0 && col > 0 && col <= 5) // считать только пары, не дни недели и не шапку
+        if (groupNext == 0)
         {
-            scheduleFromHTML[row-1][col-1] = t
+            scheduleFromHTML[12][0] = t.trim() // записать название группы
+            groupNext = 1
+        }
+        else
+        {
+            if (t == "Расписание занятий учебной группы:")
+            {
+                groupNext = 0
+            }
+            
+            if (row > 0 && col > 0 && col <= 5) // считать только пары, не дни недели и не шапку
+            {
+                scheduleFromHTML[row-1][col-1] = t
+            }
         }
     }
 
@@ -129,7 +149,7 @@ export function ReadFromHTMLFile()
 
 
 // Создать HTML таблицу с расписанием
-export function ConvertToTable(schedule: string[][])
+export function ConvertToTable(schedule: string[][], group: string)
 {
     const weekDays = ["Пнд", "Втр", "Срд", "Чтв", "Птн", "Сбт"]
 
@@ -141,7 +161,7 @@ export function ConvertToTable(schedule: string[][])
     </head>
 
     <body>
-    <p id="Group"><font face="Times New Roman" size="5" color="#0000ff">Расписание занятий учебной группы:</font><font face="Times New Roman" size="6" color="#ff00ff"> 22з</font></p>
+    <p id="Group"><font face="Times New Roman" size="5" color="#0000ff">Расписание занятий учебной группы:</font><font face="Times New Roman" size="6" color="#ff00ff"> `+ group +`</font></p>
     <table border="" cellspacing="3" bordercolor="#000000" cellpadding="2" width="801">
     <tbody><tr><td>
     <p><font>Пары</font></p></td>
@@ -240,9 +260,5 @@ export function ConvertToTable(schedule: string[][])
     </style>
     </body></html>`
 
-    fs.writeFileSync("src\\34_from_DB.html", htmlTable)
+    fs.writeFileSync("src\\schedule_fromDB.html", htmlTable)
 }
-
-
-
-

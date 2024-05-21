@@ -369,7 +369,7 @@ function toObjArr(HTMLdata) {
 }
 exports.toObjArr = toObjArr;
 // Обновление данных в базе
-function insertIntoDB(newSchedule) {
+function insertIntoDB(newSchedule, group) {
     return __awaiter(this, void 0, void 0, function () {
         var db, schedule_db;
         return __generator(this, function (_a) {
@@ -380,7 +380,7 @@ function insertIntoDB(newSchedule) {
                 case 1:
                     _a.sent();
                     db = client.db(DBName);
-                    schedule_db = db.collection("Schedule_22z");
+                    schedule_db = db.collection("Schedule_" + group);
                     schedule_db.drop();
                     return [4 /*yield*/, schedule_db.insertMany(newSchedule)];
                 case 2:
@@ -397,7 +397,7 @@ function insertIntoDB(newSchedule) {
 }
 exports.insertIntoDB = insertIntoDB;
 // Считать расписание из базы и конвертировать его в строковый массив
-function readFromDB() {
+function readFromDB(group) {
     return __awaiter(this, void 0, void 0, function () {
         var schedule_strArr, db, schedule_db, schedule, i, j, lesson, toWrite;
         var _a, _b, _c, _d;
@@ -412,7 +412,7 @@ function readFromDB() {
                 case 2:
                     _e.sent();
                     db = client.db(DBName);
-                    schedule_db = db.collection("Schedule_22z");
+                    schedule_db = db.collection("Schedule_" + group);
                     return [4 /*yield*/, schedule_db.find().toArray()];
                 case 3:
                     schedule = _e.sent();

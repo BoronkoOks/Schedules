@@ -397,14 +397,14 @@ export async function toObjArr(HTMLdata: string[][])
 
 
 // Обновление данных в базе
-export async function insertIntoDB(newSchedule: Schedule[])
+export async function insertIntoDB(newSchedule: Schedule[], group: string)
 {
     try
     {
         await client.connect()
         const db = client.db(DBName)
 
-        const schedule_db = db.collection("Schedule_22z") as Collection<Schedule>
+        const schedule_db = db.collection("Schedule_" + group) as Collection<Schedule>
         schedule_db.drop()
 
         await schedule_db.insertMany(newSchedule)
@@ -417,7 +417,7 @@ export async function insertIntoDB(newSchedule: Schedule[])
 
 
 // Считать расписание из базы и конвертировать его в строковый массив
-export async function readFromDB()
+export async function readFromDB(group: string)
 {
     let schedule_strArr: string[][] = [[], [], [], [], [], [], [], [], [], [], [], []]
 
@@ -426,7 +426,7 @@ export async function readFromDB()
         await client.connect()
         const db = client.db(DBName)
 
-        const schedule_db = db.collection("Schedule_22z") as Collection<Schedule>
+        const schedule_db = db.collection("Schedule_" + group) as Collection<Schedule>
 
         const schedule: Schedule[] = await schedule_db.find().toArray()
 

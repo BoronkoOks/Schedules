@@ -41,13 +41,22 @@ var CS = require("./ConvertSchedule");
 var DBI = require("./DBInteract");
 function runApp() {
     return __awaiter(this, void 0, void 0, function () {
-        var toDo, _a, readHTML, new_schedule, schedule;
+        var toDo, command, group, _a, readHTML, new_schedule, schedule;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
                     toDo = fs.readFileSync("src\\command.txt", "utf8");
-                    console.log(toDo);
-                    _a = toDo;
+                    command = "", group = "";
+                    if (toDo == "FromHTML") {
+                        command = toDo;
+                    }
+                    else {
+                        command = toDo.slice(0, toDo.indexOf("\n"));
+                        group = toDo.slice(toDo.indexOf("\n") + 1);
+                    }
+                    console.log(command);
+                    console.log(group);
+                    _a = command.trim();
                     switch (_a) {
                         case "FromHTML": return [3 /*break*/, 1];
                         case "FromDB": return [3 /*break*/, 3];
@@ -58,12 +67,12 @@ function runApp() {
                     return [4 /*yield*/, DBI.toObjArr(readHTML)];
                 case 2:
                     new_schedule = _b.sent();
-                    DBI.insertIntoDB(new_schedule);
+                    DBI.insertIntoDB(new_schedule, readHTML[12][0]);
                     return [3 /*break*/, 6];
-                case 3: return [4 /*yield*/, DBI.readFromDB()];
+                case 3: return [4 /*yield*/, DBI.readFromDB(group)];
                 case 4:
                     schedule = _b.sent();
-                    CS.ConvertToTable(schedule);
+                    CS.ConvertToTable(schedule, group.trim());
                     return [3 /*break*/, 6];
                 case 5: return [3 /*break*/, 6];
                 case 6: return [2 /*return*/];
@@ -72,4 +81,3 @@ function runApp() {
     });
 }
 runApp().catch(console.dir);
-// ссылку в приложениях
