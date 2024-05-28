@@ -46,10 +46,12 @@ export function ReadFromHTMLFile()
 
     current = start
 
+
     let col = -1
     let row = -1
 
     start.onopentag = function (tag): void {
+
         if (tag.name == "TABLE")
         {
             current = table
@@ -144,6 +146,8 @@ export function ReadFromHTMLFile()
 
     parser.write(FromHtml).close()
 
+    // console.log(scheduleFromHTML)
+
     return scheduleFromHTML
 }
 
@@ -151,17 +155,28 @@ export function ReadFromHTMLFile()
 // Создать HTML таблицу с расписанием
 export function ConvertToTable(schedule: string[][], group: string)
 {
+    let scheduleType = ""
+
+    if(group.length > 3)
+    {
+        scheduleType = "Расписание преподавателя:"
+    }
+    else
+    {
+        scheduleType = "Расписание занятий учебной группы:"
+    }
+
     const weekDays = ["Пнд", "Втр", "Срд", "Чтв", "Птн", "Сбт"]
 
     const fontSize = "2" // размер шрифта расписания
     const colorEven = "#0000ff" // цвет ячеек чётной недели
 
-    let htmlTable = `<!DOCTYPE html><head><title>34 from DB</title>
+    let htmlTable = `<!DOCTYPE html><head><title>Schedule from DB</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     </head>
 
     <body>
-    <p id="Group"><font face="Times New Roman" size="5" color="#0000ff">Расписание занятий учебной группы:</font><font face="Times New Roman" size="6" color="#ff00ff"> `+ group +`</font></p>
+    <p id="Group"><font face="Times New Roman" size="5" color="#0000ff">` + scheduleType + `</font><font face="Times New Roman" size="5" color="#ff00ff"> `+ group +`</font></p>
     <table border="" cellspacing="3" bordercolor="#000000" cellpadding="2" width="801">
     <tbody><tr><td>
     <p><font>Пары</font></p></td>

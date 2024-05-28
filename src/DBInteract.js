@@ -36,7 +36,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.readFromDB = exports.insertIntoDB = exports.toObjArr = void 0;
+exports.readTeacherSchedule = exports.readFromDB = exports.insertIntoDB = exports.toObjArr = void 0;
 var mongodb_1 = require("mongodb");
 var CONNECTION = "mongodb://localhost:27017/";
 var DBName = "Schedules";
@@ -57,15 +57,17 @@ var Lesson = /** @class */ (function () {
     function Lesson() {
         this._id = new mongodb_1.ObjectId();
         this.lessonName = "-";
+        this.lessonNumber = 1;
     }
     return Lesson;
 }());
 // Само расписание
 var Schedule = /** @class */ (function () {
-    function Schedule(week, weekDay, lessons) {
+    function Schedule(week, weekDay, group, lessons) {
         if (lessons === void 0) { lessons = []; }
         this.week = week;
         this.weekDay = weekDay;
+        this.group = group;
         this.lessons = lessons;
         this._id = new mongodb_1.ObjectId();
     }
@@ -119,7 +121,7 @@ function IndexOf_a(dataString) {
     return ind;
 }
 // Разбиение информации string на поля класса Lesson
-function stringToLesson(lesson_str) {
+function stringToLesson(lesson_str, lesson_number) {
     return __awaiter(this, void 0, void 0, function () {
         var lessonTypes, positions, toWrite, db, teachers_db, lesson, k, startPos, toWrite_teacher, end_1, name_1, teacher, k, end_2, name_2, teacher, sg_1, sg_2, end, end_, k, toWrite_teacher, end_3, name_3, teacher, k, end_4, name_4, teacher;
         return __generator(this, function (_a) {
@@ -132,6 +134,7 @@ function stringToLesson(lesson_str) {
                     db = client.db(DBName);
                     teachers_db = db.collection("Teachers");
                     lesson = new Lesson();
+                    lesson.lessonNumber = lesson_number;
                     if (!(toWrite != "_")) return [3 /*break*/, 14];
                     // тип занятия
                     for (k = 0; k < lessonTypes.length; k++) {
@@ -325,7 +328,7 @@ function toObjArr(HTMLdata) {
                 case 2:
                     if (!(j < 5)) return [3 /*break*/, 5];
                     _b = (_a = lessons).push;
-                    return [4 /*yield*/, stringToLesson(HTMLdata[i][j])];
+                    return [4 /*yield*/, stringToLesson(HTMLdata[i][j], j + 1)];
                 case 3:
                     _b.apply(_a, [_e.sent()]);
                     _e.label = 4;
@@ -333,7 +336,7 @@ function toObjArr(HTMLdata) {
                     j++;
                     return [3 /*break*/, 2];
                 case 5:
-                    days.push(new Schedule("Нечетная", weekDays[i], lessons));
+                    days.push(new Schedule("Нечетная", weekDays[i], HTMLdata[12][0], lessons));
                     _e.label = 6;
                 case 6:
                     i++;
@@ -349,7 +352,7 @@ function toObjArr(HTMLdata) {
                 case 9:
                     if (!(j < 5)) return [3 /*break*/, 12];
                     _d = (_c = lessons).push;
-                    return [4 /*yield*/, stringToLesson(HTMLdata[i][j])];
+                    return [4 /*yield*/, stringToLesson(HTMLdata[i][j], j + 1)];
                 case 10:
                     _d.apply(_c, [_e.sent()]);
                     _e.label = 11;
@@ -357,7 +360,7 @@ function toObjArr(HTMLdata) {
                     j++;
                     return [3 /*break*/, 9];
                 case 12:
-                    days.push(new Schedule("Четная", weekDays[i - 6], lessons));
+                    days.push(new Schedule("Четная", weekDays[i - 6], HTMLdata[12][0], lessons));
                     _e.label = 13;
                 case 13:
                     i++;
@@ -375,22 +378,24 @@ function insertIntoDB(newSchedule, group) {
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
-                    _a.trys.push([0, , 3, 5]);
+                    _a.trys.push([0, , 4, 6]);
                     return [4 /*yield*/, client.connect()];
                 case 1:
                     _a.sent();
                     db = client.db(DBName);
-                    schedule_db = db.collection("Schedule_" + group);
-                    schedule_db.drop();
-                    return [4 /*yield*/, schedule_db.insertMany(newSchedule)];
+                    schedule_db = db.collection("Schedule");
+                    return [4 /*yield*/, schedule_db.deleteMany({ group: group })];
                 case 2:
                     _a.sent();
-                    return [3 /*break*/, 5];
-                case 3: return [4 /*yield*/, client.close()];
-                case 4:
+                    return [4 /*yield*/, schedule_db.insertMany(newSchedule)];
+                case 3:
+                    _a.sent();
+                    return [3 /*break*/, 6];
+                case 4: return [4 /*yield*/, client.close()];
+                case 5:
                     _a.sent();
                     return [7 /*endfinally*/];
-                case 5: return [2 /*return*/];
+                case 6: return [2 /*return*/];
             }
         });
     });
@@ -412,8 +417,8 @@ function readFromDB(group) {
                 case 2:
                     _e.sent();
                     db = client.db(DBName);
-                    schedule_db = db.collection("Schedule_" + group);
-                    return [4 /*yield*/, schedule_db.find().toArray()];
+                    schedule_db = db.collection("Schedule");
+                    return [4 /*yield*/, schedule_db.find({ group: group }).toArray()];
                 case 3:
                     schedule = _e.sent();
                     for (i = 0; i < 12; i++) {
@@ -468,3 +473,128 @@ function readFromDB(group) {
     });
 }
 exports.readFromDB = readFromDB;
+// Разбить на строковый массив пары одного дня (для преподавателей)
+function lessonsForDay(schedules) {
+    var lessons = ["-", "-", "-", "-", "-"];
+    var j = 0;
+    for (var k = 0; k < schedules.length; k++) {
+        var lesson = schedules[k].lessons;
+        var toWrite = "";
+        while (lesson.lessonNumber > j + 1) // пропустить пустые позиции
+         {
+            j++;
+        }
+        if (lesson.lessonType != undefined) {
+            toWrite += lesson.lessonType;
+        }
+        toWrite += lesson.lessonName + " " + schedules[k].group; // группа
+        if (lesson.lessonType == "лек.") // сразу записать другие группы, если это лекция
+         {
+            var next = 1;
+            while (k + next < schedules.length) {
+                var lessonNext = schedules[k + next].lessons;
+                if (lessonNext.lessonType == "лек." &&
+                    lesson.lessonNumber == lessonNext.lessonNumber) {
+                    toWrite += "+" + schedules[k + next].group;
+                    next++;
+                }
+            }
+            k += next;
+        }
+        if (lesson.subgroup != undefined) // записать подгруппу
+         {
+            toWrite += "- " + lesson.subgroup.toString() + "п/г ";
+        }
+        toWrite += " а." + lesson.classroom;
+        if (lesson.lesson2Name != undefined) {
+            if (lesson.lesson2Name != "-") // если отмечена как вторая пара в это же время, записать её
+             {
+                toWrite += " " + lesson.lesson2Name;
+            }
+            if (lesson.subgroup2 != undefined) // записать подгруппу
+             {
+                toWrite += "- " + lesson.subgroup.toString() + " п/г ";
+            }
+            toWrite += " а." + lesson.classroom2;
+        }
+        lessons[j] = toWrite;
+        j++;
+    }
+    return lessons;
+}
+// Считать расписание из базы и конвертировать его в строковый массив (для преподавателя)
+function readTeacherSchedule(teacher) {
+    return __awaiter(this, void 0, void 0, function () {
+        var weekDays, schedule_strArr, db, schedules_db, teachers_db, teacherID, i, schedules, i, schedules;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    weekDays = ["Пнд", "Втр", "Срд", "Чтв", "Птн", "Сбт"];
+                    schedule_strArr = [[], [], [], [], [], [], [], [], [], [], [], []];
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, , 13, 15]);
+                    return [4 /*yield*/, client.connect()];
+                case 2:
+                    _a.sent();
+                    db = client.db(DBName);
+                    schedules_db = db.collection("Schedule");
+                    return [4 /*yield*/, db.collection("Teachers")];
+                case 3:
+                    teachers_db = _a.sent();
+                    return [4 /*yield*/, teachers_db.find({ Name: teacher }).toArray()];
+                case 4:
+                    teacherID = _a.sent();
+                    if (!(teacherID.length > 0)) return [3 /*break*/, 12];
+                    i = 0;
+                    _a.label = 5;
+                case 5:
+                    if (!(i < 6)) return [3 /*break*/, 8];
+                    return [4 /*yield*/, schedules_db.aggregate([
+                            { $unwind: "$lessons" },
+                            { $match: { $and: [{ week: "Нечетная" }, { weekDay: weekDays[i] },
+                                        { $or: [{ "lessons.teacher": teacher }, { "lessons.teacher2": teacher }] }] } },
+                            { $sort: {
+                                    "lessons.lessonNumber": 1,
+                                    group: 1
+                                } }
+                        ]).toArray()];
+                case 6:
+                    schedules = _a.sent();
+                    schedule_strArr[i] = lessonsForDay(schedules);
+                    _a.label = 7;
+                case 7:
+                    i++;
+                    return [3 /*break*/, 5];
+                case 8:
+                    i = 6;
+                    _a.label = 9;
+                case 9:
+                    if (!(i < 12)) return [3 /*break*/, 12];
+                    return [4 /*yield*/, schedules_db.aggregate([
+                            { $unwind: "$lessons" },
+                            { $match: { $and: [{ week: "Четная" }, { weekDay: weekDays[i - 6] },
+                                        { $or: [{ "lessons.teacher": teacher }, { "lessons.teacher2": teacher }] }] } },
+                            { $sort: {
+                                    "lessons.lessonNumber": 1,
+                                    group: 1
+                                } }
+                        ]).toArray()];
+                case 10:
+                    schedules = _a.sent();
+                    schedule_strArr[i] = lessonsForDay(schedules);
+                    _a.label = 11;
+                case 11:
+                    i++;
+                    return [3 /*break*/, 9];
+                case 12: return [3 /*break*/, 15];
+                case 13: return [4 /*yield*/, client.close()];
+                case 14:
+                    _a.sent();
+                    return [7 /*endfinally*/];
+                case 15: return [2 /*return*/, schedule_strArr];
+            }
+        });
+    });
+}
+exports.readTeacherSchedule = readTeacherSchedule;

@@ -41,7 +41,7 @@ var CS = require("./ConvertSchedule");
 var DBI = require("./DBInteract");
 function runApp() {
     return __awaiter(this, void 0, void 0, function () {
-        var toDo, command, group, _a, readHTML, new_schedule, schedule;
+        var toDo, command, group, _a, readHTML, new_schedule, schedule, schedule;
         return __generator(this, function (_b) {
             switch (_b.label) {
                 case 0:
@@ -52,7 +52,7 @@ function runApp() {
                     }
                     else {
                         command = toDo.slice(0, toDo.indexOf("\n"));
-                        group = toDo.slice(toDo.indexOf("\n") + 1);
+                        group = toDo.slice(toDo.indexOf("\n") + 1).trim();
                     }
                     console.log(command);
                     console.log(group);
@@ -61,21 +61,29 @@ function runApp() {
                         case "FromHTML": return [3 /*break*/, 1];
                         case "FromDB": return [3 /*break*/, 3];
                     }
-                    return [3 /*break*/, 5];
+                    return [3 /*break*/, 8];
                 case 1:
                     readHTML = CS.ReadFromHTMLFile();
                     return [4 /*yield*/, DBI.toObjArr(readHTML)];
                 case 2:
                     new_schedule = _b.sent();
                     DBI.insertIntoDB(new_schedule, readHTML[12][0]);
-                    return [3 /*break*/, 6];
-                case 3: return [4 /*yield*/, DBI.readFromDB(group)];
+                    return [3 /*break*/, 9];
+                case 3:
+                    if (!(group.length <= 3)) return [3 /*break*/, 5];
+                    return [4 /*yield*/, DBI.readFromDB(group)];
                 case 4:
                     schedule = _b.sent();
                     CS.ConvertToTable(schedule, group.trim());
-                    return [3 /*break*/, 6];
-                case 5: return [3 /*break*/, 6];
-                case 6: return [2 /*return*/];
+                    return [3 /*break*/, 7];
+                case 5: return [4 /*yield*/, DBI.readTeacherSchedule(group.trim().toUpperCase())];
+                case 6:
+                    schedule = _b.sent();
+                    CS.ConvertToTable(schedule, group.trim().toUpperCase());
+                    _b.label = 7;
+                case 7: return [3 /*break*/, 9];
+                case 8: return [3 /*break*/, 9];
+                case 9: return [2 /*return*/];
             }
         });
     });

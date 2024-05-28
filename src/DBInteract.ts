@@ -27,6 +27,7 @@ class Lesson{
     _id: ObjectId = new ObjectId()
 
     public lessonName: string = "-"
+    public lessonNumber: number = 1
     public classroom?: string
     public teacherPos?: string
     public teacher?: string
@@ -51,6 +52,7 @@ class Schedule{
     constructor(
         public week: string,
         public weekDay: string,
+        public group: string,
         public lessons: Array<Lesson> = []
     )
     {}
@@ -108,7 +110,7 @@ function IndexOf_a (dataString: string)
 
 
 // Разбиение информации string на поля класса Lesson
-async function stringToLesson (lesson_str: string)
+async function stringToLesson (lesson_str: string, lesson_number: number)
 {
     const lessonTypes = ["лек.", "пр.кср.", "пр.", "лаб."]
     const positions = ["ст.пр.", "доц."]
@@ -121,6 +123,7 @@ async function stringToLesson (lesson_str: string)
 
     const lesson = new Lesson()
 
+    lesson.lessonNumber = lesson_number
     
     if (toWrite != "_")
     {
@@ -373,10 +376,10 @@ export async function toObjArr(HTMLdata: string[][])
 
         for (let j = 0; j < 5; j++)
         {
-            lessons.push(await stringToLesson(HTMLdata[i][j]))
+            lessons.push(await stringToLesson(HTMLdata[i][j], j+1))
         }
         
-        days.push(new Schedule("Нечетная", weekDays[i], lessons))
+        days.push(new Schedule("Нечетная", weekDays[i], HTMLdata[12][0], lessons))
     }
 
     for (let i = 6; i < 12; i++)
@@ -385,10 +388,10 @@ export async function toObjArr(HTMLdata: string[][])
 
         for (let j = 0; j < 5; j++)
         {
-            lessons.push(await stringToLesson(HTMLdata[i][j]))
+            lessons.push(await stringToLesson(HTMLdata[i][j], j+1))
         }
         
-        days.push(new Schedule("Четная", weekDays[i-6], lessons))
+        days.push(new Schedule("Четная", weekDays[i-6], HTMLdata[12][0], lessons))
 
     }
     
@@ -404,14 +407,14 @@ export async function insertIntoDB(newSchedule: Schedule[], group: string)
         await client.connect()
         const db = client.db(DBName)
 
-        const schedule_db = db.collection("Schedule_" + group) as Collection<Schedule>
-        schedule_db.drop()
+        const schedule_db = db.collection("Schedule") as Collection<Schedule>
 
+        await schedule_db.deleteMany({group: group})
         await schedule_db.insertMany(newSchedule)
     }
     finally
     {
-        await client.close();
+        await client.close()
     }
 }
 
@@ -426,9 +429,9 @@ export async function readFromDB(group: string)
         await client.connect()
         const db = client.db(DBName)
 
-        const schedule_db = db.collection("Schedule_" + group) as Collection<Schedule>
+        const schedule_db = db.collection("Schedule") as Collection<Schedule>
 
-        const schedule: Schedule[] = await schedule_db.find().toArray()
+        const schedule: Schedule[] = await schedule_db.find({group: group}).toArray()
 
         for (let i = 0; i < 12; i++)
         {
@@ -501,6 +504,142 @@ export async function readFromDB(group: string)
     finally
     {
         await client.close();
+    }
+
+    return schedule_strArr
+}
+
+
+// Разбить на строковый массив пары одного дня (для преподавателей)
+function lessonsForDay(schedules: Schedule[])
+{
+    const lessons = ["-", "-", "-", "-", "-"]
+
+    let j = 0
+
+    for (let k = 0; k < schedules.length; k++)
+    {
+        const lesson = schedules[k].lessons as unknown as Lesson
+
+        let toWrite = ""
+
+        while (lesson.lessonNumber > j + 1) // пропустить пустые позиции
+        {
+            j++
+        }
+
+        if (lesson.lessonType != undefined)
+        {
+            toWrite += lesson.lessonType
+        }
+
+        toWrite += lesson.lessonName + " " + schedules[k].group // группа
+
+        if (lesson.lessonType == "лек.") // сразу записать другие группы, если это лекция
+        {
+            let next = 1
+
+            while (k + next < schedules.length)
+            {
+                const lessonNext = schedules[k + next].lessons as unknown as Lesson
+
+                if (lessonNext.lessonType == "лек." && 
+                    lesson.lessonNumber == lessonNext.lessonNumber)
+                {
+                    toWrite += "+" + schedules[k + next].group
+
+                    next++
+                }
+            }
+
+            k += next
+        }
+
+
+        if (lesson.subgroup != undefined) // записать подгруппу
+        {
+            toWrite += "- " + lesson.subgroup.toString() + "п/г "
+        }
+
+        toWrite += " а." + lesson.classroom
+
+        if (lesson.lesson2Name != undefined)
+        {
+            if (lesson.lesson2Name != "-") // если отмечена как вторая пара в это же время, записать её
+            {
+                toWrite += " " + lesson.lesson2Name
+            }
+            
+
+            if (lesson.subgroup2 != undefined)  // записать подгруппу
+            {
+                toWrite += "- " + lesson.subgroup.toString() + " п/г "
+            }
+
+            toWrite += " а." + lesson.classroom2
+        }
+
+        lessons[j] = toWrite
+
+        j++
+    }
+
+    return lessons
+}
+
+
+// Считать расписание из базы и конвертировать его в строковый массив (для преподавателя)
+export async function readTeacherSchedule(teacher: string)
+{
+    const weekDays = ["Пнд", "Втр", "Срд", "Чтв", "Птн", "Сбт"]
+
+    let schedule_strArr: string[][] = [[], [], [], [], [], [], [], [], [], [], [], []]
+
+    try
+    {
+        await client.connect()
+        const db = client.db(DBName)
+        const schedules_db = db.collection("Schedule") as Collection<Schedule>
+
+        const teachers_db = await db.collection("Teachers") as Collection<Teacher>
+        const teacherID = await teachers_db.find({Name: teacher}).toArray()
+
+        if (teacherID.length > 0)
+        {
+            for (let i = 0; i < 6; i++)
+            {
+                const schedules = await schedules_db.aggregate([
+                {$unwind: "$lessons"},
+		        {$match: {$and: [{week: "Нечетная"}, {weekDay: weekDays[i]},
+                    {$or: [{"lessons.teacher": teacher}, {"lessons.teacher2": teacher}]}]}},
+                {$sort: {
+                    "lessons.lessonNumber": 1,
+                    group: 1
+                }}
+		        ]).toArray() as Array<Schedule>
+
+                schedule_strArr[i] = lessonsForDay(schedules)
+            }
+
+            for (let i = 6; i < 12; i++)
+            {
+                const schedules = await schedules_db.aggregate([
+                {$unwind: "$lessons"},
+		        {$match: {$and: [{week: "Четная"}, {weekDay: weekDays[i-6]},
+                    {$or: [{"lessons.teacher": teacher}, {"lessons.teacher2": teacher}]}]}},
+                {$sort: {
+                    "lessons.lessonNumber": 1,
+                    group: 1
+                }}
+		        ]).toArray() as Array<Schedule>
+
+                schedule_strArr[i] = lessonsForDay(schedules)
+            }
+        }
+    }
+    finally
+    {
+        await client.close()
     }
 
     return schedule_strArr

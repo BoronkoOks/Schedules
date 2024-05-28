@@ -16,7 +16,7 @@ async function runApp()
     else
     {
         command = toDo.slice(0, toDo.indexOf("\n"))
-        group = toDo.slice(toDo.indexOf("\n") + 1)
+        group = toDo.slice(toDo.indexOf("\n") + 1).trim()
     }
 
     console.log(command)
@@ -33,8 +33,16 @@ async function runApp()
 
         case "FromDB": // DB -> HTML
         {
-            const schedule = await DBI.readFromDB(group)
-            CS.ConvertToTable(schedule, group.trim())
+            if (group.length <= 3) // Расписание группы
+            {
+                const schedule = await DBI.readFromDB(group)
+                CS.ConvertToTable(schedule, group.trim())
+            }
+            else // Расписание преподавателей
+            {
+                const schedule = await DBI.readTeacherSchedule(group.trim().toUpperCase())
+                CS.ConvertToTable(schedule, group.trim().toUpperCase())
+            }
         } break
 
         default: break
