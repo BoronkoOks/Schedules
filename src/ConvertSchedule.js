@@ -35,6 +35,7 @@ parser.ontext = function (t) {
 function ReadFromHTMLFile() {
     var scheduleFromHTML = [[], [], [], [], [], [], [], [], [], [], [], [], []];
     var FromHtml = fs.readFileSync("src\\schedule.html", "utf8");
+    FromHtml = FromHtml.replace("<!DOCTYPE html>", "<html>");
     var groupNext = -1; // -1 ещё не записали группу, 0 - группа в следующем FONT, 1 - группа записана
     current = start;
     var col = -1;
@@ -106,7 +107,6 @@ function ReadFromHTMLFile() {
         }
     };
     parser.write(FromHtml).close();
-    // console.log(scheduleFromHTML)
     return scheduleFromHTML;
 }
 exports.ReadFromHTMLFile = ReadFromHTMLFile;
@@ -133,7 +133,7 @@ function ConvertToTable(schedule, group) {
                 + schedule[i][j] +
                 "</font></p></td>\n            ";
         }
-        +"</tr>";
+        htmlTable += "</tr>\n        ";
     }
     htmlTable += "\n    \n    ";
     // Чётная неделя
@@ -146,7 +146,7 @@ function ConvertToTable(schedule, group) {
                 + schedule[i][j] +
                 "</font></p></td>\n            ";
         }
-        +"</tr>";
+        htmlTable += "</tr>\n        ";
     }
     htmlTable += "</tbody></table>\n\n    <style>\n        td{\n            width = 15%\n            height = 28\n            vertical-align: top\n        }\n\n        p{\n            text-align: center\n        }\n\n        #Group{\n            text-align: left\n        }\n\n        body{\n            font-family: \"Arial\"\n        }\n    </style>\n    </body></html>";
     fs.writeFileSync("src\\schedule_fromDB.html", htmlTable);

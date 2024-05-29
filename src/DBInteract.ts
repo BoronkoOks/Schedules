@@ -125,7 +125,7 @@ async function stringToLesson (lesson_str: string, lesson_number: number)
 
     lesson.lessonNumber = lesson_number
     
-    if (toWrite != "_")
+    if (toWrite != "_" && toWrite != "-")
     {
         // тип занятия
         for (let k = 0; k < lessonTypes.length; k++)
@@ -511,7 +511,7 @@ export async function readFromDB(group: string)
 
 
 // Разбить на строковый массив пары одного дня (для преподавателей)
-function lessonsForDay(schedules: Schedule[])
+function lessonsForDay(schedules: Schedule[], teacher: string)
 {
     const lessons = ["-", "-", "-", "-", "-"]
 
@@ -533,50 +533,51 @@ function lessonsForDay(schedules: Schedule[])
             toWrite += lesson.lessonType
         }
 
-        toWrite += lesson.lessonName + " " + schedules[k].group // группа
-
-        if (lesson.lessonType == "лек.") // сразу записать другие группы, если это лекция
+        if (lesson.teacher == teacher)
         {
-            let next = 1
+            toWrite += lesson.lessonName + " " + schedules[k].group // пара и группа
 
-            while (k + next < schedules.length)
+            if (lesson.lessonType == "лек.") // сразу записать другие группы, если это лекция
             {
-                const lessonNext = schedules[k + next].lessons as unknown as Lesson
+                let next = 1
 
-                if (lessonNext.lessonType == "лек." && 
-                    lesson.lessonNumber == lessonNext.lessonNumber)
+                while (k + next < schedules.length)
                 {
-                    toWrite += "+" + schedules[k + next].group
+                    const lessonNext = schedules[k + next].lessons as unknown as Lesson
 
-                    next++
+                    if (lessonNext.lessonType == "лек." && 
+                        lesson.lessonNumber == lessonNext.lessonNumber)
+                    {
+                        toWrite += "+" + schedules[k + next].group
+
+                        next++
+                    }
                 }
+
+                k += next
             }
 
-            k += next
-        }
 
-
-        if (lesson.subgroup != undefined) // записать подгруппу
-        {
-            toWrite += "- " + lesson.subgroup.toString() + "п/г "
-        }
-
-        toWrite += " а." + lesson.classroom
-
-        if (lesson.lesson2Name != undefined)
-        {
-            if (lesson.lesson2Name != "-") // если отмечена как вторая пара в это же время, записать её
+            if (lesson.subgroup != undefined) // записать подгруппу
             {
-                toWrite += " " + lesson.lesson2Name
+                toWrite += "- " + lesson.subgroup.toString() + "п/г "
             }
-            
 
-            if (lesson.subgroup2 != undefined)  // записать подгруппу
+            toWrite += " а." + lesson.classroom
+        }
+        else
+        {
+            if (lesson.lesson2Name != undefined)
             {
-                toWrite += "- " + lesson.subgroup.toString() + " п/г "
-            }
+                toWrite += " " + lesson.lesson2Name + " " + schedules[k].group // пара и группа
+                
+                if (lesson.subgroup2 != undefined)  // записать подгруппу
+                {
+                    toWrite += "- " + lesson.subgroup.toString() + " п/г "
+                }
 
-            toWrite += " а." + lesson.classroom2
+                toWrite += " а." + lesson.classroom2
+            }
         }
 
         lessons[j] = toWrite
@@ -618,7 +619,7 @@ export async function readTeacherSchedule(teacher: string)
                 }}
 		        ]).toArray() as Array<Schedule>
 
-                schedule_strArr[i] = lessonsForDay(schedules)
+                schedule_strArr[i] = lessonsForDay(schedules, teacher)
             }
 
             for (let i = 6; i < 12; i++)
@@ -633,7 +634,7 @@ export async function readTeacherSchedule(teacher: string)
                 }}
 		        ]).toArray() as Array<Schedule>
 
-                schedule_strArr[i] = lessonsForDay(schedules)
+                schedule_strArr[i] = lessonsForDay(schedules, teacher)
             }
         }
     }

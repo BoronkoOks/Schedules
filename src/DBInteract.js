@@ -135,7 +135,7 @@ function stringToLesson(lesson_str, lesson_number) {
                     teachers_db = db.collection("Teachers");
                     lesson = new Lesson();
                     lesson.lessonNumber = lesson_number;
-                    if (!(toWrite != "_")) return [3 /*break*/, 14];
+                    if (!(toWrite != "_" && toWrite != "-")) return [3 /*break*/, 14];
                     // тип занятия
                     for (k = 0; k < lessonTypes.length; k++) {
                         if (toWrite.indexOf(lessonTypes[k]) > -1) {
@@ -474,7 +474,7 @@ function readFromDB(group) {
 }
 exports.readFromDB = readFromDB;
 // Разбить на строковый массив пары одного дня (для преподавателей)
-function lessonsForDay(schedules) {
+function lessonsForDay(schedules, teacher) {
     var lessons = ["-", "-", "-", "-", "-"];
     var j = 0;
     for (var k = 0; k < schedules.length; k++) {
@@ -487,35 +487,36 @@ function lessonsForDay(schedules) {
         if (lesson.lessonType != undefined) {
             toWrite += lesson.lessonType;
         }
-        toWrite += lesson.lessonName + " " + schedules[k].group; // группа
-        if (lesson.lessonType == "лек.") // сразу записать другие группы, если это лекция
-         {
-            var next = 1;
-            while (k + next < schedules.length) {
-                var lessonNext = schedules[k + next].lessons;
-                if (lessonNext.lessonType == "лек." &&
-                    lesson.lessonNumber == lessonNext.lessonNumber) {
-                    toWrite += "+" + schedules[k + next].group;
-                    next++;
+        if (lesson.teacher == teacher) {
+            toWrite += lesson.lessonName + " " + schedules[k].group; // пара и группа
+            if (lesson.lessonType == "лек.") // сразу записать другие группы, если это лекция
+             {
+                var next = 1;
+                while (k + next < schedules.length) {
+                    var lessonNext = schedules[k + next].lessons;
+                    if (lessonNext.lessonType == "лек." &&
+                        lesson.lessonNumber == lessonNext.lessonNumber) {
+                        toWrite += "+" + schedules[k + next].group;
+                        next++;
+                    }
                 }
+                k += next;
             }
-            k += next;
-        }
-        if (lesson.subgroup != undefined) // записать подгруппу
-         {
-            toWrite += "- " + lesson.subgroup.toString() + "п/г ";
-        }
-        toWrite += " а." + lesson.classroom;
-        if (lesson.lesson2Name != undefined) {
-            if (lesson.lesson2Name != "-") // если отмечена как вторая пара в это же время, записать её
+            if (lesson.subgroup != undefined) // записать подгруппу
              {
-                toWrite += " " + lesson.lesson2Name;
+                toWrite += "- " + lesson.subgroup.toString() + "п/г ";
             }
-            if (lesson.subgroup2 != undefined) // записать подгруппу
-             {
-                toWrite += "- " + lesson.subgroup.toString() + " п/г ";
+            toWrite += " а." + lesson.classroom;
+        }
+        else {
+            if (lesson.lesson2Name != undefined) {
+                toWrite += " " + lesson.lesson2Name + " " + schedules[k].group; // пара и группа
+                if (lesson.subgroup2 != undefined) // записать подгруппу
+                 {
+                    toWrite += "- " + lesson.subgroup.toString() + " п/г ";
+                }
+                toWrite += " а." + lesson.classroom2;
             }
-            toWrite += " а." + lesson.classroom2;
         }
         lessons[j] = toWrite;
         j++;
@@ -561,7 +562,7 @@ function readTeacherSchedule(teacher) {
                         ]).toArray()];
                 case 6:
                     schedules = _a.sent();
-                    schedule_strArr[i] = lessonsForDay(schedules);
+                    schedule_strArr[i] = lessonsForDay(schedules, teacher);
                     _a.label = 7;
                 case 7:
                     i++;
@@ -582,7 +583,7 @@ function readTeacherSchedule(teacher) {
                         ]).toArray()];
                 case 10:
                     schedules = _a.sent();
-                    schedule_strArr[i] = lessonsForDay(schedules);
+                    schedule_strArr[i] = lessonsForDay(schedules, teacher);
                     _a.label = 11;
                 case 11:
                     i++;

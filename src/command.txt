@@ -1,2 +1,1 @@
-FromDB
-АЛЬТМАН Е.А.
+FromHTML

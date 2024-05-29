@@ -41,11 +41,11 @@ export function ReadFromHTMLFile()
     const scheduleFromHTML: string[][] = [[], [], [], [], [], [], [], [], [], [], [], [], []]
 
     let FromHtml = fs.readFileSync("src\\schedule.html", "utf8")
+    FromHtml = FromHtml.replace("<!DOCTYPE html>", "<html>")
 
     let groupNext = -1 // -1 ещё не записали группу, 0 - группа в следующем FONT, 1 - группа записана
 
     current = start
-
 
     let col = -1
     let row = -1
@@ -146,8 +146,6 @@ export function ReadFromHTMLFile()
 
     parser.write(FromHtml).close()
 
-    // console.log(scheduleFromHTML)
-
     return scheduleFromHTML
 }
 
@@ -224,7 +222,8 @@ export function ConvertToTable(schedule: string[][], group: string)
             `
         }
 
-        + `</tr>`
+        htmlTable += `</tr>
+        `
     }
 
     htmlTable += `
@@ -249,7 +248,8 @@ export function ConvertToTable(schedule: string[][], group: string)
             `
         }
 
-        + `</tr>`
+        htmlTable += `</tr>
+        `
     }
     
     htmlTable += `</tbody></table>
